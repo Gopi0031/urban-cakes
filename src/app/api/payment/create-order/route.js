@@ -1,13 +1,17 @@
 import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
 
-const razorpay = new Razorpay({
-  key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+// ❌ DO NOT initialize Razorpay here globally.
+// It crashes the build if env vars are missing.
 
 export async function POST(request) {
   try {
+    // ✅ Initialize Razorpay INSIDE the function
+    const razorpay = new Razorpay({
+      key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+
     const { amount, currency = 'INR' } = await request.json();
     
     const options = {
@@ -20,6 +24,7 @@ export async function POST(request) {
     
     return NextResponse.json({ success: true, order });
   } catch (error) {
+    console.error("Payment Order Error:", error);
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500 }
