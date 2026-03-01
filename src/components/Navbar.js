@@ -1,13 +1,13 @@
+// src/components/Navbar.js
 'use client';
 
-import { useState, Suspense } from 'react'; // Import Suspense
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ShoppingCart, Heart, LogIn, Search, ChevronDown, Box, LogOut } from 'lucide-react';
+import { ShoppingCart, Heart, LogIn, Search, ChevronDown, Box, LogOut, Menu, X } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import toast from 'react-hot-toast';
 
-// 1. Logic Component
 function NavbarContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -16,6 +16,8 @@ function NavbarContent() {
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showProdMenu, setShowProdMenu] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const categories = ['cakes', 'cupcakes', 'pastries', 'breads', 'cookies', 'brownies', 'combos'];
@@ -23,11 +25,14 @@ function NavbarContent() {
   const handleSearch = (e) => {
     e.preventDefault();
     router.push(`/?search=${search}`);
+    setMobileSearchOpen(false);
+    setMobileMenuOpen(false);
   };
 
   const handleCategoryClick = (cat) => {
     router.push(`/?category=${cat}`);
     setShowProdMenu(false);
+    setMobileMenuOpen(false);
   };
 
   return (
@@ -69,6 +74,84 @@ function NavbarContent() {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes slideIn {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        .mobile-menu {
+          display: none;
+        }
+        .desktop-nav {
+          display: flex;
+        }
+        .desktop-search {
+          display: block;
+        }
+        .desktop-icons {
+          display: flex;
+        }
+        .mobile-icons {
+          display: none;
+        }
+        .hamburger {
+          display: none;
+        }
+        
+        @media (max-width: 768px) {
+          .mobile-menu {
+            display: flex;
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 80%;
+            max-width: 320px;
+            height: 100vh;
+            background: white;
+            flex-direction: column;
+            padding: 20px;
+            box-shadow: -5px 0 20px rgba(0,0,0,0.1);
+            z-index: 200;
+            animation: slideIn 0.3s ease-out;
+            overflow-y: auto;
+          }
+          .mobile-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            z-index: 199;
+          }
+          .desktop-nav {
+            display: none;
+          }
+          .desktop-search {
+            display: none;
+          }
+          .desktop-icons {
+            display: none;
+          }
+          .mobile-icons {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+          .hamburger {
+            display: flex;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+          }
+          .logo-text {
+            font-size: 18px !important;
+          }
+          .logo-img {
+            width: 40px !important;
+            height: 40px !important;
+          }
+        }
       `}</style>
 
       <nav style={{
@@ -80,14 +163,15 @@ function NavbarContent() {
         borderBottom: '1px solid #fbcfe8',
         boxShadow: '0 4px 20px rgba(236, 72, 153, 0.05)'
       }}>
-        <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px' }}>
+        <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
           
           {/* Logo Section */}
-          <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div className="logo-animate">
               <img 
                 src="/image.png" 
-                alt="Urban Bakes Logo" 
+                alt="Urban Bakes Logo"
+                className="logo-img"
                 style={{ 
                   width: '50px', 
                   height: '50px', 
@@ -98,7 +182,7 @@ function NavbarContent() {
                 }}
               />
             </div>
-            <span style={{
+            <span className="logo-text" style={{
               fontSize: '24px',
               fontWeight: '800',
               background: 'linear-gradient(135deg, #be185d 0%, #db2777 100%)',
@@ -110,8 +194,8 @@ function NavbarContent() {
             </span>
           </Link>
 
-          {/* Middle Navigation */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+          {/* Desktop Middle Navigation */}
+          <div className="desktop-nav" style={{ alignItems: 'center', gap: '24px' }}>
             <div 
               style={{ position: 'relative' }}
               onMouseEnter={() => setShowProdMenu(true)}
@@ -153,13 +237,17 @@ function NavbarContent() {
               )}
             </div>
 
-            <Link href="/gallery" className="nav-link">
-              Gallery
-            </Link>
+           <Link 
+  href="/gallery" 
+  className="nav-link" 
+  style={{ color: "black", textDecoration: "none" }}
+>
+  Gallery
+</Link>
           </div>
 
-          {/* Search Bar */}
-          <form onSubmit={handleSearch} style={{ position: 'relative', width: '250px' }}>
+          {/* Desktop Search Bar */}
+          <form onSubmit={handleSearch} className="desktop-search" style={{ position: 'relative', width: '250px' }}>
             <input
               type="text"
               placeholder="Search for cakes..."
@@ -184,8 +272,8 @@ function NavbarContent() {
             </button>
           </form>
 
-          {/* Right Icons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {/* Desktop Right Icons */}
+          <div className="desktop-icons" style={{ alignItems: 'center', gap: '16px' }}>
             <button 
               onClick={() => {
                 if(!customer) { toast.error('Please login'); router.push('/login'); return; }
@@ -263,16 +351,194 @@ function NavbarContent() {
               </Link>
             )}
           </div>
+
+          {/* Mobile Icons */}
+          <div className="mobile-icons">
+            <button 
+              onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
+              style={{ background: 'none', border: 'none', padding: '8px', cursor: 'pointer' }}
+            >
+              <Search size={20} color="#db2777" />
+            </button>
+            
+            <button 
+              onClick={() => {
+                if(!customer) { toast.error('Please login'); router.push('/login'); return; }
+                openCart();
+              }}
+              style={{ position: 'relative', background: 'none', border: 'none', padding: '8px', cursor: 'pointer' }}
+            >
+              <ShoppingCart size={20} color="#333" />
+              {cartCount > 0 && (
+                <span style={{
+                  position: 'absolute', top: '0', right: '0',
+                  background: '#db2777', color: 'white',
+                  fontSize: '9px', fontWeight: 'bold',
+                  width: '16px', height: '16px', borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  {cartCount}
+                </span>
+              )}
+            </button>
+
+            <button 
+              className="hamburger"
+              onClick={() => setMobileMenuOpen(true)}
+            >
+              <Menu size={24} color="#333" />
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Search Bar */}
+        {mobileSearchOpen && (
+          <div style={{ padding: '0 16px 12px', background: 'rgba(255, 240, 245, 0.95)' }}>
+            <form onSubmit={handleSearch} style={{ position: 'relative', width: '100%' }}>
+              <input
+                type="text"
+                placeholder="Search for cakes..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  paddingRight: '40px',
+                  borderRadius: '25px',
+                  border: '1px solid #fbcfe8',
+                  background: 'white',
+                  fontSize: '14px',
+                  outline: 'none'
+                }}
+              />
+              <button type="submit" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#db2777' }}>
+                <Search size={18} />
+              </button>
+            </form>
+          </div>
+        )}
       </nav>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <>
+          <div className="mobile-overlay" onClick={() => setMobileMenuOpen(false)} />
+          <div className="mobile-menu">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#db2777' }}>Menu</span>
+              <button onClick={() => setMobileMenuOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <X size={24} color="#333" />
+              </button>
+            </div>
+
+            {/* User Info */}
+            {customer ? (
+              <div style={{ 
+                display: 'flex', alignItems: 'center', gap: '12px', 
+                padding: '16px', background: '#fdf2f8', borderRadius: '12px', marginBottom: '20px' 
+              }}>
+                <div style={{ 
+                  width: '45px', height: '45px', borderRadius: '50%', 
+                  background: 'linear-gradient(135deg, #f9a8d4, #f472b6)', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'white', fontWeight: 'bold', fontSize: '18px'
+                }}>
+                  {customer.name?.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p style={{ fontWeight: 'bold', color: '#333' }}>Hello, {customer.name?.split(' ')[0]}</p>
+                  <p style={{ fontSize: '12px', color: '#666' }}>{customer.email}</p>
+                </div>
+              </div>
+            ) : (
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                <div style={{ 
+                  display: 'flex', alignItems: 'center', gap: '12px', 
+                  padding: '16px', background: '#fdf2f8', borderRadius: '12px', marginBottom: '20px',
+                  cursor: 'pointer'
+                }}>
+                  <LogIn size={20} color="#db2777" />
+                  <span style={{ fontWeight: '600', color: '#db2777' }}>Login / Sign Up</span>
+                </div>
+              </Link>
+            )}
+
+            {/* Categories */}
+            <div style={{ marginBottom: '20px' }}>
+              <p style={{ fontSize: '12px', color: '#999', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>Categories</p>
+              <div onClick={() => handleCategoryClick('')} style={{ 
+                padding: '12px', cursor: 'pointer', fontWeight: '600', color: '#333',
+                borderBottom: '1px solid #f3f4f6'
+              }}>
+                All Products
+              </div>
+              {categories.map(cat => (
+                <div 
+                  key={cat}
+                  onClick={() => handleCategoryClick(cat)}
+                  style={{
+                    padding: '12px',
+                    cursor: 'pointer',
+                    color: '#666',
+                    fontSize: '15px',
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    borderBottom: '1px solid #f3f4f6'
+                  }}
+                >
+                  <span style={{width: '6px', height: '6px', background: '#f9a8d4', borderRadius: '50%'}}></span>
+                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                </div>
+              ))}
+            </div>
+
+            {/* Links */}
+            <div style={{ marginBottom: '20px' }}>
+              <p style={{ fontSize: '12px', color: '#999', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>Quick Links</p>
+              <Link href="/gallery" onClick={() => setMobileMenuOpen(false)} style={{ textDecoration: 'none' }}>
+                <div style={{ padding: '12px', color: '#666', borderBottom: '1px solid #f3f4f6' }}>Gallery</div>
+              </Link>
+              {customer && (
+                <>
+                  <Link href="/my-orders" onClick={() => setMobileMenuOpen(false)} style={{ textDecoration: 'none' }}>
+                    <div style={{ padding: '12px', color: '#666', display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid #f3f4f6' }}>
+                      <Box size={16} /> My Orders
+                    </div>
+                  </Link>
+                  <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)} style={{ textDecoration: 'none' }}>
+                    <div style={{ padding: '12px', color: '#666', display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid #f3f4f6' }}>
+                      <Heart size={16} /> Wishlist
+                    </div>
+                  </Link>
+                </>
+              )}
+            </div>
+
+            {/* Logout */}
+            {customer && (
+              <button 
+                onClick={() => { logout(); setMobileMenuOpen(false); }}
+                style={{ 
+                  width: '100%', padding: '14px', background: '#fef2f2', 
+                  border: 'none', borderRadius: '12px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', 
+                  color: '#ef4444', fontWeight: '600', cursor: 'pointer',
+                  marginTop: 'auto'
+                }}
+              >
+                <LogOut size={18} /> Logout
+              </button>
+            )}
+          </div>
+        </>
+      )}
     </>
   );
 }
 
-// 2. Main Export Wrapped in Suspense
 export default function Navbar() {
   return (
-    <Suspense fallback={<div style={{height: '80px', background: '#fff0f5'}}></div>}>
+    <Suspense fallback={<div style={{height: '70px', background: '#fff0f5'}}></div>}>
       <NavbarContent />
     </Suspense>
   );

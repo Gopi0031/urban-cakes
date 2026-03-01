@@ -227,7 +227,7 @@ function HomeContent() {
         )}
       </div>
 
-      <WhatsAppButton cart={cart} />
+      {/* <WhatsAppButton cart={cart} /> */}
     </div>
   );
 }

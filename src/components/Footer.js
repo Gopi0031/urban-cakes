@@ -29,21 +29,22 @@ export default function Footer() {
               gap: '10px',
               marginBottom: '16px'
             }}>
-              <div style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #db2777 0%, #ec4899 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: '22px',
-                fontWeight: 'bold',
-                boxShadow: '0 4px 12px rgba(219, 39, 119, 0.3)'
-              }}>
-                🍰
-              </div>
+                <div className="logo-animate">
+                              <img 
+                                src="/image.png" 
+                                alt="Urban Bakes Logo" 
+                                style={{ 
+                                  width: '50px', 
+                                  height: '50px', 
+                                  borderRadius: '50%',
+                                  objectFit: 'cover',
+                                  border: '2px solid #db2777',
+                                  boxShadow: '0 4px 12px rgba(219, 39, 119, 0.3)'
+                                }}
+                              />
+                            </div>
+                            
+              
               <div>
                 <h3 style={{
                   fontSize: '18px',
@@ -65,7 +66,7 @@ export default function Footer() {
               lineHeight: '1.6',
               fontSize: '14px'
             }}>
-              🎂 Baking happiness since 2024. We deliver premium cakes and pastries fresh to your doorstep with love and care.
+              🎂 Baking happiness since 2025. We deliver premium cakes and pastries fresh to your doorstep with love and care.
             </p>
           </div>
 

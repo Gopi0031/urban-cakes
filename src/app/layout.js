@@ -1,5 +1,5 @@
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+// src/app/layout.js
+import LayoutWrapper from '@/components/LayoutWrapper';
 import './globals.css';
 import { Toaster } from 'react-hot-toast';
 
@@ -17,11 +17,9 @@ export default function RootLayout({ children }) {
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
       <body style={{ margin: 0, padding: 0, fontFamily: "'Poppins', sans-serif" }}>
-        <Navbar />
-        <main style={{ minHeight: 'calc(100vh - 400px)' }}>
+        <LayoutWrapper>
           {children}
-        </main>
-        <Footer />
+        </LayoutWrapper>
         <Toaster position="top-center" />
       </body>
     </html>

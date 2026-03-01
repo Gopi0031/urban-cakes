@@ -545,7 +545,7 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      <WhatsAppButton cart={cart} />
+      {/* <WhatsAppButton cart={cart} /> */}
     </div>
   );
 }
