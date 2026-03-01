@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react'; // 1. Import Suspense
 import { useRouter, useSearchParams } from 'next/navigation';
 import { LogIn, UserPlus, Eye, EyeOff } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
@@ -9,11 +9,12 @@ import axios from 'axios';
 import Link from 'next/link';
 import { useStore } from '@/lib/store';
 
-export default function LoginPage() {
+// 2. This inner component holds all the logic that uses useSearchParams
+function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get('returnUrl') || '/';
-  const { setAuth, loadCustomer } = useStore();
+  const { setAuth } = useStore();
 
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -59,8 +60,11 @@ export default function LoginPage() {
       if (data.success) {
         // Save auth data
         setAuth(data.customer, data.token);
+        
+        // No longer using localStorage manually here as store.js handles persistence usually, 
+        // but keeping it if your logic relies on it explicitly alongside zustand.
         localStorage.setItem('customerToken', data.token);
-        localStorage.setItem('customer', JSON.stringify(data.customer));
+        // localStorage.setItem('customer', JSON.stringify(data.customer));
 
         toast.success(isLogin ? 'Welcome back! 🎉' : 'Account created successfully! 🎉');
 
@@ -317,5 +321,18 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// 3. Main Export wrapping the content in Suspense
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        Loading...
+      </div>
+    }>
+      <AuthContent />
+    </Suspense>
   );
 }
