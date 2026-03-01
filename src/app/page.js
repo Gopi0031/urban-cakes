@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Heart, LogIn } from 'lucide-react';
+import { useState, useEffect, Suspense } from 'react'; // Import Suspense
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Heart } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
-export default function Home() {
+// 1. Logic Component
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const store = useStore();
@@ -25,47 +26,31 @@ export default function Home() {
     loadCustomer,
   } = store;
 
-  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'cakes');
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const selectedCategory = searchParams.get('category') || 'all';
+  const searchQuery = searchParams.get('search') || '';
+  
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  const categories = ['cakes', 'cupcakes', 'pastries', 'breads', 'cookies', 'brownies', 'combos'];
-
-  // Initial Fetch
   useEffect(() => {
-    fetchProducts(selectedCategory || null);
+    fetchProducts();
     loadCustomer();
-    if (fetchHeroSlides) {
-      fetchHeroSlides();
-    }
+    if (fetchHeroSlides) fetchHeroSlides();
   }, []);
 
-  // Slider Timer Logic
   useEffect(() => {
     if (heroSlides && heroSlides.length > 1) {
       const interval = setInterval(() => {
         setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-      }, 5000);
+      }, 5000); 
       return () => clearInterval(interval);
     }
   }, [heroSlides]);
 
   const filteredProducts = products.filter((p) => {
-    const categoryMatch = !selectedCategory || selectedCategory === '' || p.category === selectedCategory;
-    const searchMatch = !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const categoryMatch = selectedCategory === 'all' || !selectedCategory || p.category === selectedCategory;
+    const searchMatch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
     return categoryMatch && searchMatch;
   });
-
-  const checkWishlist = (productId) => {
-    try {
-      if (typeof store.isInWishlist === 'function') {
-        return store.isInWishlist(productId);
-      }
-      return false;
-    } catch {
-      return false;
-    }
-  };
 
   const handleAddToCart = (product) => {
     if (!customer) {
@@ -86,51 +71,10 @@ export default function Home() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--light)' }}>
-      <style jsx global>{`
-        @keyframes float {
-          0% { transform: translateY(0px); }
-          50% { transform: translateY(-6px); }
-          100% { transform: translateY(0px); }
-        }
-        @keyframes slideInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        @keyframes slideInDown {
-          from {
-            opacity: 0;
-            transform: translateY(-30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        @keyframes slideInRight {
-          from {
-            opacity: 0;
-            transform: translateX(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-        .logo-animate {
-          animation: float 3s ease-in-out infinite;
-        }
-      `}</style>
-
+    <div style={{ background: '#fff' }}>
       <Toaster position="top-center" />
 
-      {/* Hero Section with Slideshow */}
+      {/* Hero Section */}
       <section
         style={{
           position: 'relative',
@@ -142,10 +86,9 @@ export default function Home() {
           textAlign: 'center',
           color: 'white',
           overflow: 'hidden',
-          animation: 'slideInUp 0.6s ease-out',
+          animation: 'fadeIn 0.6s ease-out',
         }}
       >
-        {/* Background Slideshow */}
         <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
           {heroSlides && heroSlides.length > 0 ? (
             heroSlides.map((slide, index) => (
@@ -163,27 +106,14 @@ export default function Home() {
               />
             ))
           ) : (
-            <div
-              style={{
-                width: '100%',
-                height: '100%',
-                background: 'linear-gradient(135deg, #db2777 0%, #ec4899 50%, #be185d 100%)',
-              }}
-            />
+            <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #fbcfe8 0%, #f9a8d4 100%)' }} />
           )}
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)' }} />
         </div>
 
-        {/* Hero Content */}
         <div style={{ position: 'relative', zIndex: 1, padding: '0 20px' }}>
-          <h1 style={{
-            fontSize: '48px',
-            fontWeight: 'bold',
-            marginBottom: '20px',
-            textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-            color: 'white'
-          }}>
-            Urban Bakes -
+          <h1 style={{ fontSize: '48px', fontWeight: 'bold', marginBottom: '20px', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
+            Urban Bakes
             <br />
             <span style={{
               display: 'inline-block',
@@ -199,355 +129,118 @@ export default function Home() {
               Made with Love 💖
             </span>
           </h1>
-          <p style={{
-            fontSize: '18px',
-            opacity: 0.95,
-            maxWidth: '600px',
-            margin: '0 auto',
-            textShadow: '0 1px 2px rgba(0,0,0,0.5)'
-          }}>
-            Premium bakery items delivered fresh to your doorstep. Order now! 🍰
+          <p style={{ fontSize: '18px', opacity: 0.95, maxWidth: '600px', margin: '0 auto', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+            Premium bakery items delivered fresh to your doorstep.
           </p>
-          {!customer && (
-            <Link href="/login">
-              <button
-                style={{
-                  marginTop: '28px',
-                  background: 'white',
-                  color: '#db2777',
-                  fontWeight: '700',
-                  padding: '14px 32px',
-                  fontSize: '16px',
-                  border: 'none',
-                  borderRadius: '30px',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  transition: 'all 0.3s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'none';
-                  e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
-                }}
-              >
-                <LogIn size={20} />
-                Login to Start Ordering
-              </button>
-            </Link>
-          )}
-
-          {/* Slider Dots */}
-          {heroSlides && heroSlides.length > 1 && (
-            <div style={{
-              display: 'flex',
-              gap: '8px',
-              justifyContent: 'center',
-              marginTop: '30px',
-              position: 'relative',
-              zIndex: 2
-            }}>
-              {heroSlides.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentSlide(idx)}
-                  style={{
-                    width: '10px',
-                    height: '10px',
-                    borderRadius: '50%',
-                    border: 'none',
-                    background: idx === currentSlide ? 'white' : 'rgba(255,255,255,0.5)',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s',
-                  }}
-                />
-              ))}
-            </div>
-          )}
         </div>
       </section>
 
-      {/* Categories */}
-      <div
-        className="container"
-        style={{
-          marginTop: '40px',
-          marginBottom: '40px',
-          animation: 'slideInUp 0.6s ease-out 0.2s backwards',
-        }}
-      >
-        <h2 style={{
-          fontSize: '24px',
-          fontWeight: 'bold',
-          marginBottom: '20px',
-          color: '#333',
-          animation: 'slideInUp 0.6s ease-out 0.2s backwards'
-        }}>
-          Categories
+      {/* Category Title */}
+      <div className="container" style={{ marginTop: '40px', textAlign: 'center' }}>
+        <h2 style={{ fontSize: '28px', fontWeight: 'bold', color: '#db2777', textTransform: 'capitalize' }}>
+          {selectedCategory === 'all' || !selectedCategory ? 'All Products' : `${selectedCategory} Collection`}
         </h2>
-        <div style={{
-          display: 'flex',
-          gap: '12px',
-          overflowX: 'auto',
-          paddingBottom: '8px',
-          animation: 'slideInUp 0.6s ease-out 0.25s backwards'
-        }}>
-          {categories.map((cat, index) => (
-            <button
-              key={cat}
-              onClick={() => {
-                setSelectedCategory(cat);
-                fetchProducts(cat);
-              }}
-              style={{
-                padding: '8px 20px',
-                borderRadius: '20px',
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: '600',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.3s',
-                background:
-                  selectedCategory === cat
-                    ? 'linear-gradient(135deg, #db2777, #ec4899)'
-                    : 'white',
-                color: selectedCategory === cat ? 'white' : '#333',
-                boxShadow:
-                  selectedCategory === cat ? '0 4px 15px rgba(219, 39, 119, 0.3)' : 'none',
-                transform: selectedCategory === cat ? 'scale(1.05)' : 'scale(1)',
-                animation: `slideInUp 0.6s ease-out ${0.25 + index * 0.05}s backwards`,
-              }}
-            >
-              {cat.charAt(0).toUpperCase() + cat.slice(1)}
-            </button>
-          ))}
-        </div>
+        {searchQuery && <p style={{color:'#666'}}>Showing results for "{searchQuery}"</p>}
       </div>
 
       {/* Products Grid */}
-      <div className="container" style={{ marginBottom: '40px' }}>
-        {filteredProducts.length > 0 ? (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: '24px'
-          }}>
-            {filteredProducts.map((product, index) => {
-              const inWishlist = checkWishlist(product._id);
-
-              return (
-                <div
-                  key={product._id}
+      <div className="container" style={{ marginBottom: '60px', marginTop: '20px' }}>
+        <div className="grid grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '30px' }}>
+          {filteredProducts.map((product, index) => (
+              <div
+                key={product._id}
+                className="card animate-scale"
+                style={{
+                  position: 'relative',
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  background: 'white',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.05)',
+                  transition: 'transform 0.3s',
+                  border: '1px solid #fff0f5'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <button
+                  onClick={() => handleWishlist(product._id)}
                   style={{
-                    background: 'white',
-                    borderRadius: '12px',
-                    overflow: 'hidden',
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                    border: '1px solid rgba(219, 39, 119, 0.1)',
-                    transition: 'all 0.3s',
-                    position: 'relative',
-                    animation: `slideInUp 0.6s ease-out ${0.3 + index * 0.1}s backwards`,
-                    cursor: 'pointer'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-8px)';
-                    e.currentTarget.style.boxShadow = '0 12px 35px rgba(219, 39, 119, 0.15)';
-                    e.currentTarget.style.borderColor = '#db2777';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'none';
-                    e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.08)';
-                    e.currentTarget.style.borderColor = 'rgba(219, 39, 119, 0.1)';
+                    position: 'absolute', top: '15px', right: '15px',
+                    width: '36px', height: '36px', borderRadius: '50%',
+                    background: 'white', border: 'none', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)', zIndex: 2
                   }}
                 >
-                  {/* Wishlist Heart */}
-                  <button
-                    onClick={() => handleWishlist(product._id)}
-                    style={{
-                      position: 'absolute',
-                      top: '12px',
-                      right: '12px',
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '50%',
-                      background: 'white',
-                      border: 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                      transition: 'all 0.3s',
-                      zIndex: 2,
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'scale(1.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'none';
-                    }}
-                  >
-                    <Heart
-                      size={18}
-                      fill={inWishlist ? '#db2777' : 'none'}
-                      stroke={inWishlist ? '#db2777' : '#666'}
+                  <Heart size={18} fill={store.isInWishlist && store.isInWishlist(product._id) ? '#ff6b35' : 'none'} stroke={store.isInWishlist && store.isInWishlist(product._id) ? '#ff6b35' : '#666'} />
+                </button>
+
+                {product.image && (
+                  <Link href={`/product/${product._id}`}>
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      style={{ width: '100%', height: '220px', objectFit: 'cover' }}
                     />
-                  </button>
+                  </Link>
+                )}
 
-                  {/* Product Image */}
-                  {product.image && (
-                    <Link href={`/product/${product._id}`}>
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        style={{
-                          width: '100%',
-                          height: '200px',
-                          objectFit: 'cover',
-                          cursor: 'pointer',
-                        }}
-                      />
-                    </Link>
-                  )}
+                <div style={{ padding: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                    <h3 style={{ fontWeight: 'bold', fontSize: '18px', color: '#333' }}>{product.name}</h3>
+                    {product.badge && (
+                      <span style={{ background: product.badge === 'hot' ? '#ff6b35' : '#4ade80', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>
+                        {product.badge}
+                      </span>
+                    )}
+                  </div>
 
-                  <div style={{ padding: '16px' }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'start',
-                        marginBottom: '8px',
-                      }}
-                    >
-                      <Link
-                        href={`/product/${product._id}`}
-                        style={{ textDecoration: 'none', flex: 1 }}
-                      >
-                        <h3
-                          style={{
-                            fontWeight: 'bold',
-                            fontSize: '16px',
-                            color: '#333',
-                            cursor: 'pointer',
-                            margin: 0,
-                            transition: 'color 0.2s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = '#db2777';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = '#333';
-                          }}
-                        >
-                          {product.name}
-                        </h3>
-                      </Link>
-                      {product.badge && (
-                        <span
-                          style={{
-                            background: product.badge === 'hot' ? '#ff6b35' : '#4ade80',
-                            color: 'white',
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            fontSize: '10px',
-                            fontWeight: 'bold',
-                          }}
-                        >
-                          {product.badge}
-                        </span>
-                      )}
+                  <p style={{ fontSize: '13px', color: '#666', marginBottom: '16px', lineHeight: '1.4' }}>{product.desc}</p>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <p style={{ fontSize: '22px', fontWeight: 'bold', color: '#db2777' }}>₹{product.price}</p>
+                      <p style={{ fontSize: '12px', color: '#f59e0b' }}>⭐ {product.rating}</p>
                     </div>
 
-                    <p style={{
-                      fontSize: '12px',
-                      color: '#666',
-                      marginBottom: '8px',
-                      margin: 0,
-                      marginBottom: '8px'
-                    }}>
-                      {product.desc}
-                    </p>
-
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
+                    <button
+                      onClick={() => handleAddToCart(product)}
+                      className="btn btn-primary"
+                      style={{ 
+                         padding: '10px 20px', fontSize: '14px', borderRadius: '25px', 
+                         background: 'linear-gradient(135deg, #db2777, #be185d)', border: 'none'
                       }}
                     >
-                      <div>
-                        <p style={{
-                          fontSize: '20px',
-                          fontWeight: 'bold',
-                          color: '#db2777',
-                          margin: 0,
-                          marginBottom: '4px'
-                        }}>
-                          ₹{product.price}
-                        </p>
-                        <p style={{
-                          fontSize: '12px',
-                          color: '#f59e0b',
-                          margin: 0
-                        }}>
-                          ⭐ {product.rating}
-                        </p>
-                      </div>
-
-                      <button
-                        onClick={() => handleAddToCart(product)}
-                        style={{
-                          padding: '8px 16px',
-                          background: 'linear-gradient(135deg, #db2777, #ec4899)',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          transition: 'all 0.3s'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-2px)';
-                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(219, 39, 119, 0.3)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'none';
-                          e.currentTarget.style.boxShadow = 'none';
-                        }}
-                      >
-                        Add to Cart
-                      </button>
-                    </div>
+                      Add to Cart
+                    </button>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div style={{
-            textAlign: 'center',
-            padding: '60px 20px',
-            color: '#666',
-            animation: 'slideInUp 0.6s ease-out'
-          }}>
-            <p style={{ fontSize: '18px', marginBottom: '12px' }}>
-              🔍 No products found
-            </p>
-            <p style={{ fontSize: '14px', color: '#999' }}>
-              Try searching for different products or browse other categories
-            </p>
+              </div>
+          ))}
+        </div>
+
+        {filteredProducts.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '60px', color: '#888' }}>
+             <h3>No yummy treats found here 😔</h3>
+             <p>Try searching for something else!</p>
           </div>
         )}
       </div>
 
-      {/* WhatsApp Floating Button */}
       <WhatsAppButton cart={cart} />
     </div>
+  );
+}
+
+// 2. Main Export Wrapped in Suspense
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div style={{height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+        Loading Deliciousness...
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
