@@ -1,14 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react'; // 1. Import Suspense
 import { useSearchParams, useRouter } from 'next/navigation';
 import { CheckCircle, Package, MapPin, CreditCard, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 
-export default function OrderSuccess() {
+// 2. Inner Component with Logic
+function OrderSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const orderId = searchParams.get('orderId');
+  
+  // Note: 'order' state wasn't used in your original snippet, but kept if you plan to fetch details later
   const [order, setOrder] = useState(null);
 
   useEffect(() => {
@@ -18,22 +21,18 @@ export default function OrderSuccess() {
   }, [orderId, router]);
 
   const shareOnWhatsApp = () => {
+    // Fallback if env variable is missing
+    const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || ''; 
     const message = `🎉 Order Placed Successfully!\n\n📦 Order ID: ${orderId}\n\nThank you for ordering from Urban Bakes! We'll deliver fresh to your doorstep. 🍰`;
     const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER}?text=${encodedMessage}`;
+    const whatsappUrl = `https://wa.me/${phone}?text=${encodedMessage}`;
     window.open(whatsappUrl, '_blank');
   };
 
+  if (!orderId) return null; // Avoid flashing content before redirect
+
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--light)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px',
-    }}>
-      <div className="card" style={{
+    <div className="card" style={{
         maxWidth: '600px',
         width: '100%',
         padding: '40px',
@@ -187,6 +186,33 @@ export default function OrderSuccess() {
           </p>
         </div>
       </div>
+  );
+}
+
+// 3. Main Export
+export default function OrderSuccess() {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'var(--light)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px',
+    }}>
+      <Suspense fallback={
+        <div style={{textAlign:'center', padding:'40px', background:'white', borderRadius:'12px', boxShadow:'0 4px 6px rgba(0,0,0,0.1)'}}>
+          <div style={{
+             width:'40px', height:'40px', 
+             border:'3px solid #f3f3f3', borderTop:'3px solid #10b981', 
+             borderRadius:'50%', margin:'0 auto', 
+             animation:'spin 1s linear infinite'
+          }}></div>
+          <p style={{marginTop:'16px', color:'#666', fontWeight:'500'}}>Loading order details...</p>
+        </div>
+      }>
+        <OrderSuccessContent />
+      </Suspense>
     </div>
   );
 }
