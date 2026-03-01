@@ -3,12 +3,10 @@ import { persist } from 'zustand/middleware';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
 export const useStore = create(
   persist(
     (set, get) => ({
-      // State
+      // --- STATE ---
       cart: [],
       products: [],
       wishlist: [],
@@ -17,8 +15,16 @@ export const useStore = create(
       token: null,
       loading: false,
       appliedCoupon: null,
+      
+      // Cart UI State (Required for Navbar)
+      isCartOpen: false, 
 
-      // ===== AUTH METHODS =====
+      // --- UI ACTIONS ---
+      openCart: () => set({ isCartOpen: true }),
+      closeCart: () => set({ isCartOpen: false }),
+      toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
+
+      // --- AUTH ACTIONS ---
       setAuth: (customer, token) => {
         set({ customer, token });
         if (token) {
@@ -31,6 +37,7 @@ export const useStore = create(
         localStorage.removeItem('customerToken');
         localStorage.removeItem('customer');
         toast.success('Logged out successfully');
+        window.location.href = '/login';
       },
 
       loadCustomer: async () => {
@@ -38,11 +45,16 @@ export const useStore = create(
         if (!token) return;
 
         try {
+          // Verify token and get fresh user data
           const { data } = await axios.get('/api/auth/me', {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (data.success) {
             set({ customer: data.customer, token });
+            // Load wishlist if available
+            if(data.customer.wishlist) {
+                set({ wishlist: data.customer.wishlist });
+            }
           }
         } catch (error) {
           localStorage.removeItem('customerToken');
@@ -50,24 +62,20 @@ export const useStore = create(
         }
       },
 
-      // ===== PRODUCT METHODS =====
+      // --- PRODUCT ACTIONS ---
       fetchProducts: async (category = null) => {
         try {
           set({ loading: true });
           const url = category ? `/api/products?category=${category}` : '/api/products';
           const { data } = await axios.get(url);
           
-          // Handle both array directly or { success: true, products: [] } format
           if (data.success) {
             set({ products: data.products || [] });
           } else if (Array.isArray(data)) {
             set({ products: data });
-          } else if (data.products) {
-            set({ products: data.products });
           }
         } catch (error) {
           console.error('Failed to fetch products:', error);
-          set({ products: [] });
         } finally {
           set({ loading: false });
         }
@@ -77,9 +85,7 @@ export const useStore = create(
         try {
           const { data } = await axios.post('/api/products', productData);
           if (data.success) {
-            set((state) => ({
-              products: [...state.products, data.product],
-            }));
+            set((state) => ({ products: [...state.products, data.product] }));
             toast.success('Product added successfully!');
             return data.product;
           }
@@ -120,32 +126,27 @@ export const useStore = create(
         }
       },
 
-      // ===== HERO SLIDES METHODS =====
+      // --- HERO SLIDES ACTIONS ---
       fetchHeroSlides: async () => {
         try {
           const { data } = await axios.get('/api/hero-slides');
-          // Assuming API returns an array of slides or { success: true, slides: [] }
-          if (data.success) {
-            set({ heroSlides: data.slides || [] });
-          } else if (Array.isArray(data)) {
+          if (Array.isArray(data)) {
             set({ heroSlides: data });
+          } else if (data.success && data.slides) {
+            set({ heroSlides: data.slides });
           }
         } catch (error) {
           console.error('Failed to fetch hero slides');
-          set({ heroSlides: [] });
         }
       },
 
       addHeroSlide: async (imageUrl) => {
         try {
           const { data } = await axios.post('/api/hero-slides', { image: imageUrl });
-          set((state) => ({
-            heroSlides: [data, ...state.heroSlides],
-          }));
+          set((state) => ({ heroSlides: [data, ...state.heroSlides] }));
           toast.success('Banner added successfully!');
           return data;
         } catch (error) {
-          console.error(error);
           toast.error('Failed to add banner');
           throw error;
         }
@@ -159,28 +160,29 @@ export const useStore = create(
           }));
           toast.success('Banner deleted');
         } catch (error) {
-          console.error(error);
           toast.error('Failed to delete banner');
           throw error;
         }
       },
 
-      // ===== CART METHODS =====
+      // --- CART ACTIONS ---
       addToCart: (product) => {
         set((state) => {
           const existing = state.cart.find((item) => item._id === product._id);
+          let newCart;
+          
           if (existing) {
+            newCart = state.cart.map((item) =>
+              item._id === product._id ? { ...item, quantity: item.quantity + 1 } : item
+            );
             toast.success('Quantity updated!');
-            return {
-              cart: state.cart.map((item) =>
-                item._id === product._id
-                  ? { ...item, quantity: item.quantity + 1 }
-                  : item
-              ),
-            };
+          } else {
+            newCart = [...state.cart, { ...product, quantity: 1 }];
+            toast.success('Added to cart! 🛒');
           }
-          toast.success('Added to cart! 🛒');
-          return { cart: [...state.cart, { ...product, quantity: 1 }] };
+          
+          // Return new cart AND open the cart sidebar
+          return { cart: newCart, isCartOpen: true };
         });
       },
 
@@ -206,7 +208,7 @@ export const useStore = create(
 
       clearCart: () => set({ cart: [], appliedCoupon: null }),
 
-      // ===== WISHLIST METHODS =====
+      // --- WISHLIST ACTIONS ---
       fetchWishlist: async () => {
         const token = get().token || localStorage.getItem('customerToken');
         if (!token) return;
@@ -227,6 +229,8 @@ export const useStore = create(
         const token = get().token || localStorage.getItem('customerToken');
         if (!token) {
           toast.error('Please login to add to wishlist');
+          // Optional: redirect to login
+          window.location.href = '/login?returnUrl=' + window.location.pathname;
           return;
         }
 
@@ -267,12 +271,13 @@ export const useStore = create(
         if (!state.wishlist || !Array.isArray(state.wishlist)) return false;
         return state.wishlist.some((item) => {
           if (!item) return false;
-          const itemId = item._id || item;
+          // Item might be populated object or just ID string
+          const itemId = item._id || item; 
           return String(itemId) === String(productId);
         });
       },
 
-      // ===== ORDER METHODS =====
+      // --- ORDER & PAYMENT ACTIONS ---
       createOrder: async (orderData) => {
         const token = get().token || localStorage.getItem('customerToken');
         try {
@@ -290,13 +295,10 @@ export const useStore = create(
         }
       },
 
-      // ===== COUPON METHODS =====
+      // --- OTHER UTILS ---
       validateCoupon: async (code, orderAmount) => {
         try {
-          const { data } = await axios.post('/api/coupons/validate', {
-            code,
-            orderAmount,
-          });
+          const { data } = await axios.post('/api/coupons/validate', { code, orderAmount });
           if (data.success) {
             set({ appliedCoupon: data.coupon });
             toast.success('Coupon applied successfully!');
@@ -313,57 +315,18 @@ export const useStore = create(
         toast.success('Coupon removed');
       },
 
-      // ===== IMAGE UPLOAD METHODS =====
       uploadImage: async (file) => {
         try {
           const formData = new FormData();
           formData.append('file', file);
-
           const { data } = await axios.post('/api/upload', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
           });
-
-          // Handle different response formats
-          if (data.success) {
-            return data.url;
-          } else if (data.url) {
-            return data.url;
-          } else if (data.secure_url) {
-            return data.secure_url;
-          }
+          if (data.success) return data.url;
+          if (data.url) return data.url;
           throw new Error('No URL in response');
         } catch (error) {
-          console.error('Upload error:', error);
           toast.error('Failed to upload image');
-          throw error;
-        }
-      },
-
-      // ===== PAYMENT METHODS =====
-      createPaymentOrder: async (amount, orderDetails) => {
-        try {
-          const { data } = await axios.post('/api/payments/create-order', {
-            amount,
-            ...orderDetails,
-          });
-          if (data.success) {
-            return data.order;
-          }
-        } catch (error) {
-          toast.error('Failed to create payment order');
-          throw error;
-        }
-      },
-
-      verifyPayment: async (paymentDetails) => {
-        try {
-          const { data } = await axios.post('/api/payments/verify', paymentDetails);
-          if (data.success) {
-            toast.success('Payment verified successfully!');
-            return data;
-          }
-        } catch (error) {
-          toast.error('Payment verification failed');
           throw error;
         }
       },
@@ -376,7 +339,7 @@ export const useStore = create(
         token: state.token,
         wishlist: state.wishlist,
         appliedCoupon: state.appliedCoupon,
-        // Don't persist heroSlides to ensure fresh data on reload
+        // Don't persist UI state (isCartOpen) or Hero Slides
       }),
     }
   )
